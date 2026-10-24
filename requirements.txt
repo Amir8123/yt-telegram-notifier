@@ -1,0 +1,2 @@
+# No third-party Python dependencies.
+# yt-dlp is installed as a system binary in the GitHub Actions workflow.

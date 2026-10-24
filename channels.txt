@@ -1,0 +1,15 @@
+# ============================================================
+# List of YouTube channels to monitor
+# ------------------------------------------------------------
+# One channel per line. Three formats are supported:
+#
+#    UCHnyfMqiRRG1u-2MsSQLbXA          <- raw channel ID (recommended)
+#    @veritasium                       <- handle
+#    https://youtube.com/@Fireship     <- full URL
+#
+# Lines starting with # are ignored.
+# After editing, commit your changes.
+# ============================================================
+
+UCE1P_bsD_kKh-i0HEsPpxtA
+@Mr.EnglishChannel

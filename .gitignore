@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local config
+.env
+.env.*
+!.env.example
+
+# IMPORTANT: state.json is intentionally NOT ignored.
+# The workflow commits it back to the repo to remember which videos were seen.
