@@ -1,26 +1,24 @@
 #!/usr/bin/env python3
 import os
-import json
 import urllib.request
 import xml.etree.ElementTree as ET
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # --- Configuration ---
-# این مقادیر از GitHub Secrets خوانده می‌شوند
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
-# آیدی چت یا کانالی که ربات باید آخرین ویدیوها را آنجا بفرستد (اختیاری)
-TARGET_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID") 
+TARGET_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-# لیست کانال‌های یوتیوب (می‌توانید از فایل channels.txt بخوانید)
+# List of YouTube channels to monitor
 CHANNELS = [
     {"name": "Mr. English", "id": "UCE1P_bsD_kKh-i0HEsPpxtA"},
-    {"name": "کانال دوم", "id": "UCxxxxxxxxxxxxxxxxxxxxxx"}, # آیدی کانال دوم را اینجا بگذارید
+    # Add more channels here:
+    # {"name": "Channel Name", "id": "UCxxxxxxxxxxxxxxxxxxxxxx"},
 ]
 
 # --- Helper Functions ---
 def fetch_latest_video(channel_id: str):
-    """آخرین ویدیو را از فید RSS یوتیوب می‌گیرد."""
+    """Fetch the latest video from the YouTube RSS feed."""
     url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
     try:
         with urllib.request.urlopen(url, timeout=10) as response:
@@ -39,52 +37,56 @@ def fetch_latest_video(channel_id: str):
 
 # --- Command Handlers ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """منوی اصلی را با دکمه‌های شیشه‌ای نمایش می‌دهد."""
+    """Display the main menu with inline buttons."""
     keyboard = [
-        [InlineKeyboardButton("📺 آخرین ویدیوها", callback_data='latest')],
-        [InlineKeyboardButton("📋 لیست کانال‌ها", callback_data='list')],
-        [InlineKeyboardButton("ℹ️ راهنما", callback_data='help')],
+        [InlineKeyboardButton("📺 Latest Videos", callback_data='latest')],
+        [InlineKeyboardButton("📋 Channel List", callback_data='list')],
+        [InlineKeyboardButton("ℹ️ Help", callback_data='help')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "سلام! به ربات خوش آمدید. یکی از گزینه‌های زیر را انتخاب کنید:",
+        "Hello! Welcome to the bot. Please choose an option below:",
         reply_markup=reply_markup
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """متن راهنما را ارسال می‌کند."""
+    """Send the help text."""
     help_text = (
-        "**راهنمای ربات:**\n\n"
-        "/start - نمایش منوی اصلی\n"
-        "/latest - دریافت آخرین ویدیو از تمام کانال‌ها\n"
-        "/list - نمایش لیست کانال‌های تحت نظر\n"
-        "/help - نمایش این راهنما"
+        "**Bot Help:**\n\n"
+        "/start - Show main menu\n"
+        "/latest - Get the latest video from all channels\n"
+        "/list - Show monitored channels\n"
+        "/help - Show this help message"
     )
     await update.message.reply_text(help_text, parse_mode='Markdown')
 
 async def latest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """آخرین ویدیو را از هر کانال دریافت و ارسال می‌کند."""
-    await update.message.reply_text("در حال دریافت آخرین ویدیوها... ⏳")
+    """Fetch and send the latest video from each channel."""
+    # Check if the update is from a button click or a text command
+    message = update.message if update.message else update.callback_query.message
+    await message.reply_text("Fetching latest videos... ⏳")
+    
     for channel in CHANNELS:
         video = fetch_latest_video(channel["id"])
         if video:
-            text = f"🎬 **{video['title']}**\n\n📺 کانال: {channel['name']}\n\n[مشاهده ویدیو]({video['link']})"
-            await update.message.reply_text(text, parse_mode='Markdown', disable_web_page_preview=False)
+            text = f"🎬 **{video['title']}**\n\n📺 Channel: {channel['name']}\n\n[Watch Video]({video['link']})"
+            await message.reply_text(text, parse_mode='Markdown', disable_web_page_preview=False)
         else:
-            await update.message.reply_text(f"❌ ویدیویی برای کانال {channel['name']} یافت نشد.")
+            await message.reply_text(f"❌ No video found for channel {channel['name']}.")
 
 async def list_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """لیست کانال‌های تحت نظر را نمایش می‌دهد."""
-    text = "**📋 کانال‌های تحت نظر:**\n\n"
+    """Display the list of monitored channels."""
+    message = update.message if update.message else update.callback_query.message
+    text = "**📋 Monitored Channels:**\n\n"
     for channel in CHANNELS:
         text += f"- {channel['name']}\n"
-    await update.message.reply_text(text, parse_mode='Markdown')
+    await message.reply_text(text, parse_mode='Markdown')
 
-# --- Callback Query Handler (برای دکمه‌های شیشه‌ای) ---
+# --- Callback Query Handler ---
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """دکمه‌های شیشه‌ای را مدیریت می‌کند."""
+    """Handle inline button clicks."""
     query = update.callback_query
-    await query.answer() # به تلگرام اطلاع می‌دهد که کلیک دریافت شده است
+    await query.answer()
 
     if query.data == 'latest':
         await latest_command(update, context)
@@ -95,14 +97,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- Main Function ---
 def main():
-    """ربات را راه‌اندازی می‌کند."""
+    """Start the bot."""
     if not BOT_TOKEN:
         print("Error: TELEGRAM_BOT_TOKEN is not set.")
         return
 
     application = Application.builder().token(BOT_TOKEN).build()
 
-    # ثبت هندلرها
+    # Register handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("latest", latest_command))
